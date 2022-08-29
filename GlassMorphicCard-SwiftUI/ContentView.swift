@@ -10,22 +10,32 @@ import SwiftUI
 struct ContentView: View {
     
     @State var blurView: UIVisualEffectView = .init()
-    @State var defaultBlurRadius: CGFloat = 0
-    @State var defaultSaturationAmount:CGFloat = 0
-    
+
     @State var progress:CGFloat = 0
     
     @State private var degrees: Double = 0
     @State private var isShowCVV: Bool = false
+    
+    @State private var isShowBackgroundContent:Bool = false
     
     var body: some View {
         ZStack{
             Color
                 .black
                 .ignoresSafeArea()
-            VStack{
+            Circle()
+                .frame(width: 150, height: 150)
+                .foregroundColor(.blue.opacity(isShowBackgroundContent ? 0.8 : 0))
+                .offset(x:-50,y:-60)
+                .blur(radius: 2)
+            Circle()
+                .frame(width: 150, height: 150)
+                .foregroundColor(.red.opacity(isShowBackgroundContent ? 0.8 : 0))
+                .offset(x:50,y:-50)
+                .blur(radius: 2)
+            VStack(spacing:50){
                 CreditCard {
-                     VStack {
+                    VStack {
                         Group {
                             if isShowCVV {
                                 GlassMorphicCard {
@@ -33,32 +43,37 @@ struct ContentView: View {
                                 }
                             } else {
                                 GlassMorphicCard {
-                                   CardFrontContent()
+                                    CardFrontContent()
                                 }
                             }
                         }
                     }.rotation3DEffect(
                         .degrees(degrees),
-                        axis: (x: 0.0, y: 1.0, z: 0.0)
+                        axis: (x: CGFloat.random(in: 0...1), y: CGFloat.random(in: 0...1), z: CGFloat.random(in: 0...1))
                     )
                 }
-            
+                
                 Button {
-                    withAnimation(.easeIn(duration: 0.4)) {
-                        degrees += 180
-                        isShowCVV.toggle()
-                        blurView.gaussianBlurRadius = 1
+                    isShowCVV.toggle()
+                    withAnimation(.easeIn(duration: 2)) {
+                        degrees += 360
                     }
                 } label: {
                     Text(isShowCVV ? "Hide CVV" : "Show CVV")
                         .foregroundColor(.white)
                 }
-                .padding(.top,50)
-
-            }
             
+                Slider(value: $progress,in: 1...15)
+                    .onChange(of: progress) { newValue in
+                        blurView.gaussianBlurRadius = newValue
+                }
+                Button {
+                    isShowBackgroundContent.toggle()
+                } label: {
+                    Text(isShowBackgroundContent ? "Hide background icon" : "Show background icon")
+                }
+            }
         }
-        
     }
     
     @ViewBuilder
@@ -68,7 +83,7 @@ struct ContentView: View {
                 Text("GOLD MEMBERSHIP")
                     .kerning(1.2)
                     .modifier(CustomModifier(font: .callout))
-                  
+                
                 Text("VISA")
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -94,14 +109,12 @@ struct ContentView: View {
             Rectangle()
                 .frame(maxWidth: .infinity, maxHeight: 30)
                 .padding(.top,30)
-            
-            
+                .foregroundColor(.black.opacity(0.2))
             HStack {
-                
                 Text("123").foregroundColor(Color.black)
                     .rotation3DEffect(
-                        .degrees(180),
-                        axis: (x: 0.0, y: 1.0, z: 0.0))
+                        .degrees(360),
+                        axis: (x:0.0, y: 0.0, z: 0.0))
                     .padding(5)
                     .frame(width: 100, height: 20)
                     .background(Color.white)
@@ -112,46 +125,40 @@ struct ContentView: View {
         .frame(maxWidth:.infinity,maxHeight: .infinity,alignment: .topLeading)
     }
     
-   
+    
     @ViewBuilder
     func GlassMorphicCard<Content:View>(
         @ViewBuilder content: ()-> Content)->some View  {
-        
-        ZStack {
-            CustomBlurView(effect: .systemUltraThinMaterialDark) { view in
-            blurView = view
-                if defaultBlurRadius == 0 {
-                    defaultBlurRadius = view.gaussianBlurRadius
+            
+            ZStack {
+                CustomBlurView(effect: .systemUltraThinMaterialDark) { view in
+                    blurView = view
                 }
-                if defaultSaturationAmount == 0 {
-                    defaultSaturationAmount = view.saturationAmount
-                }
+                .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+                
+                RoundedRectangle(cornerRadius: 25, style: .continuous)
+                    .fill(
+                        .linearGradient(colors: [.white.opacity(0.25),.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        
+                    )
+                    .blur(radius: 5)
+                
+                RoundedRectangle(cornerRadius: 25, style: .continuous)
+                    .stroke(
+                        .linearGradient(colors: [.white.opacity(0.6),.clear,.purple.opacity(0.2),.purple.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 2
+                    )
+                
             }
-            .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
-            
-            RoundedRectangle(cornerRadius: 25, style: .continuous)
-                .fill(
-                    .linearGradient(colors: [.white.opacity(0.25),.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    
-                )
-                .blur(radius: 5)
-            
-            RoundedRectangle(cornerRadius: 25, style: .continuous)
-                .stroke(
-                    .linearGradient(colors: [.white.opacity(0.6),.clear,.purple.opacity(0.2),.purple.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 2
-                )
-            
+            .shadow(color: .black.opacity(0.15), radius: 5, x: -10, y: 10)
+            .shadow(color: .black.opacity(0.15), radius: 5, x: 10, y: -10)
+            .overlay(content: {
+                content()
+                
+            })
+            .padding(.horizontal,25)
+            .frame(height:220)
         }
-        .shadow(color: .black.opacity(0.15), radius: 5, x: -10, y: 10)
-        .shadow(color: .black.opacity(0.15), radius: 5, x: 10, y: -10)
-        .overlay(content: {
-            content()
-           
-        })
-        .padding(.horizontal,25)
-        .frame(height:220)
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {
